@@ -1,0 +1,25 @@
+{
+  "name": "lip",
+  "version": "0.1.0",
+  "description": "LIP is LIPS In Php",
+  "main": "parser.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jcubic/lip.git"
+  },
+  "keywords": [
+    "lisp"
+  ],
+  "author": "Jakub T. Jankiewicz <jcubic@onet.pl> (https://jcubic.pl/jakub-jankiewicz/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jcubic/lip/issues"
+  },
+  "homepage": "https://github.com/jcubic/lip#readme",
+  "devDependencies": {
+    "js2php": "^0.1.7"
+  }
+}
