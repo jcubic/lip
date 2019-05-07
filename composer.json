@@ -1,0 +1,15 @@
+{
+    "name": "jcubic/lip",
+    "description": "LIP is LIPS In Php",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jakub Jankiewicz",
+            "email": "jcubic@onet.pl"
+        }
+    ],
+    "require": {
+        "phpmath/biginteger": "^2.1"
+    }
+}
