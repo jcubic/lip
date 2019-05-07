@@ -1,5 +1,3 @@
-
-
 var re_re = /^\/((?:\\\/|[^/]|\[[^\]]*\/[^\]]*\])+)\/([gimy]*)$/;
 var int_re = /^[-+]?[0-9]+([eE][-+]?[0-9]+)?$/;
 var float_re = /^([-+]?((\.[0-9]+|[0-9]+\.[0-9]+)([eE][-+]?[0-9]+)?)|[0-9]+\.)$/;
@@ -270,7 +268,7 @@ function parse(tokens) {
         }
     });
     if (stack.length) {
-        dump(result);
+        //dump(result);
         throw new Error('Unbalanced parenthesis 2');
     }
     return result.map((arg) => {
@@ -335,6 +333,35 @@ function emptyList() {
     return new Pair(undefined, nil);
 }
 // ----------------------------------------------------------------------
+// :: flatten nested arrays
+// :: source: https://stackoverflow.com/a/27282907/387194
+// ----------------------------------------------------------------------
+function flatten(array, mutable) {
+    var toString = Object.prototype.toString;
+    var arrayTypeStr = '[object Array]';
+
+    var result = [];
+    var nodes = (mutable && array) || array.slice();
+    var node;
+
+    if (!array.length) {
+        return result;
+    }
+
+    node = nodes.pop();
+
+    do {
+        if (toString.call(node) === arrayTypeStr) {
+            nodes.push.apply(nodes, node);
+        } else {
+            result.push(node);
+        }
+    } while (nodes.length && (node = nodes.pop()) !== undefined);
+
+    result.reverse(); // we reverse result to restore the original order
+    return result;
+}
+// ----------------------------------------------------------------------
 Pair.prototype.flatten = function() {
     return Pair.fromArray(flatten(this.toArray()));
 };
@@ -347,7 +374,7 @@ Pair.prototype.length = function() {
     var node = this;
     while (true) {
         if (!node || node === nil || !(node instanceof Pair) ||
-             node.haveCycles('cdr')) {
+            node.haveCycles('cdr')) {
             break;
         }
         len++;
@@ -543,9 +570,9 @@ function toString(value) {
     } else if (isPromise(value)) {
         return '<#Promise>';
     } else if (value instanceof Symbol ||
-              value instanceof LNumber ||
-              value instanceof Pair ||
-              value === nil) {
+               value instanceof LNumber ||
+               value instanceof Pair ||
+               value === nil) {
         return value.toString();
     } else if (value instanceof Array) {
         return value.map(toString);
@@ -709,3 +736,266 @@ function equal(x, y) {
 function isEmptyList(x) {
     return x instanceof Pair && x.isEmptyList() || x === nil;
 }
+
+
+// ----------------------------------------------------------------------
+// :: Number wrapper that handle BigNumbers
+// ----------------------------------------------------------------------
+function LNumber(n, float) {
+    if (typeof this !== 'undefined' && this.constructor !== LNumber ||
+        typeof this === 'undefined') {
+        return new LNumber(n, float === true ? true : undefined);
+    }
+    if (n instanceof LNumber) {
+        return LNumber(n.value, n.float);
+    }
+    if (!LNumber.isNumber(n)) {
+        throw new Error(`You can't create LNumber from ${type(n)}`);
+    }
+    // prevent infite loop https://github.com/indutny/bn.js/issues/186
+    if (n === null) {
+        n = 0;
+    }
+    if (LNumber.isFloat(n)) {
+        this.value = n;
+    } else if (float) {
+        this.value = n;
+        this.float = true;
+    } else if (typeof BigInt !== 'undefined') {
+        if (typeof n !== 'bigint') {
+            this.value = BigInt(n);
+        } else {
+            this.value = n;
+        }
+    } else if (typeof BN !== 'undefined' && !(n instanceof BN)) {
+        this.value = new BN(n);
+    } else {
+        this.value = n;
+    }
+}
+// ----------------------------------------------------------------------
+LNumber.isFloat = function isFloat(n) {
+    return Number(n) === n && n % 1 !== 0;
+};
+// ----------------------------------------------------------------------
+LNumber.isNumber = function(n) {
+    return n instanceof LNumber ||
+        (!Number.isNaN(n) && LNumber.isNative(n) || LNumber.isBN(n));
+};
+// ----------------------------------------------------------------------
+LNumber.isNative = function(n) {
+    return typeof n === 'bigint' || typeof n === 'number';
+};
+// ----------------------------------------------------------------------
+LNumber.isBN = function(n) {
+    return typeof BN !== 'undefined' && n instanceof BN;
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.toString = LNumber.prototype.toJSON = function() {
+    return this.value.toString();
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.isBigNumber = function() {
+    return typeof this.value === 'bigint' ||
+        typeof BN !== 'undefined' && !(this.value instanceof BN);
+};
+// ----------------------------------------------------------------------
+['floor', 'ceil', 'round'].forEach(fn => {
+    LNumber.prototype[fn] = function() {
+        if (this.float || LNumber.isFloat(this.value)) {
+            return LNumber(Math[fn](this.value));
+        } else {
+            return LNumber(this.value);
+        }
+    };
+});
+// ----------------------------------------------------------------------
+LNumber.prototype.valueOf = function() {
+    if (LNumber.isNative(this.value)) {
+        return Number(this.value);
+    } else if (LNumber.isBN(this.value)) {
+        return this.value.toNumber();
+    }
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.coerce = function(n) {
+    if (n === null) {
+        n = 0;
+    }
+    var value;
+    if (n instanceof LNumber) {
+        value = n.value;
+    } else {
+        value = n;
+    }
+    if (LNumber.isFloat(value)) {
+        // skip
+    } else if (typeof this.value === 'bigint' && typeof value !== 'bigint') {
+        value = BigInt(value);
+    } else if (typeof BN !== 'undefined' && this.value instanceof BN &&
+               !value instanceof BN) {
+        value = new BN(value);
+    }
+    return LNumber(value);
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.isFloat = function() {
+    return !!(LNumber.isFloat(this.value) || this.float);
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.op = function(op, n) {
+    var ops = {
+        '*': function(a, b) {
+            return a * b;
+        },
+        '+': function(a, b) {
+            return a + b;
+        },
+        '-': function(a, b) {
+            return a - b;
+        },
+        '/': function(a, b) {
+            return a / b;
+        },
+        '%': function(a, b) {
+            return a % b;
+        },
+        '|': function(a, b) {
+            return a | b;
+        },
+        '&': function(a, b) {
+            return a & b;
+        },
+        '~': function(a) {
+            return ~a;
+        },
+        '>>': function(a, b) {
+            return a >> b;
+        },
+        '<<': function(a, b) {
+            return a << b;
+        }
+    };
+    if (LNumber.isFloat(n) || (n instanceof LNumber && n.isFloat()) ||
+        this.isFloat()) {
+        var value = n instanceof LNumber ? n.valueOf() : n;
+        return LNumber(ops[op](this.valueOf(), value), true);
+    }
+    n = this.coerce(n);
+    if (LNumber.isNative(n.value) && LNumber.isNative(this.value)) {
+        return LNumber(ops[op](this.value, n.value));
+    }
+    if (LNumber.isBN(this.value) && LNumber.isBN(n.value)) {
+        var bn_op = {
+            '+': 'iadd',
+            '-': 'isub',
+            '*': 'imul',
+            '/': 'idiv',
+            '%': 'imod',
+            '|': 'ior',
+            '&': 'iand',
+            '~': 'inot',
+            '<<': 'ishrn',
+            '>>': 'ishln'
+        };
+        op = bn_op[op];
+        return LNumber(this.value.clone()[op](n, value));
+    }
+};
+// ----------------------------------------------------------------------
+var ops = {
+    '+': 'add',
+    '-': 'sub',
+    '*': 'mul',
+    '/': 'div',
+    '%': 'mod',
+    '|': 'or',
+    '&': 'and',
+    '~': 'neg',
+    '<<': 'shl',
+    '>>': 'shr'
+};
+Object.keys(ops).forEach(op => {
+    LNumber.prototype[ops[op]] = function(n) {
+        return this.op(op, n);
+    };
+});
+// ----------------------------------------------------------------------
+LNumber.prototype.sqrt = function() {
+    var value;
+    if (LNumber.isNative(this.value)) {
+        value = Math.sqrt(this.value);
+    } else if (LNumber.isBN(this.value)) {
+        value = this.value.sqrt();
+    }
+    return new LNumber(value);
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.pow = function(n) {
+    n = this.coerce(n);
+    if (LNumber.isNative(this.value)) {
+        try {
+            var pow = new Function('a,b', 'return a**b;');
+            n.value = pow(this.value, n.value);
+        } catch (e) {
+            throw new Error("Power operator not supported");
+        }
+    } else if (LNumber.isBN(this.value)) {
+        n.value = this.value.pow(n.value);
+    } else {
+        n.value = Math.pow(this.value, n.value);
+    }
+    return n;
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.neg = function() {
+    var value = this.value;
+    if (LNumber.isNative(value)) {
+        value = -value;
+    } else if (LNumber.isBN(value)) {
+        value = value.neg();
+    }
+    return new LNumber(value);
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.abs = function() {
+    var value = this.value;
+    if (LNumber.isNative(this.value)) {
+        if (value < 0) {
+            value = -value;
+        }
+    } else if (LNumber.isBN(value)) {
+        value.iabs();
+    }
+    return new LNumber(value);
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.isOdd = function() {
+    if (LNumber.isNative(this.value)) {
+        if (this.isBigNumber()) {
+            return this.value % BigInt(2) === BigInt(1);
+        }
+        return this.value % 2 === 1;
+    } else if (LNumber.isBN(this.value)) {
+        return this.value.isOdd();
+    }
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.isEven = function() {
+    return !this.isOdd();
+};
+// ----------------------------------------------------------------------
+LNumber.prototype.cmp = function(n) {
+    n = this.coerce(n);
+    if (LNumber.isNative(this.value)) {
+        if (this.value < n.value) {
+            return -1;
+        } else if (this.value === n.value) {
+            return 0;
+        } else {
+            return 1;
+        }
+    } else if (LNumber.isBN(this.value)) {
+        return this.value.cmp(n.value);
+    }
+};
