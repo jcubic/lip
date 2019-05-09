@@ -3,12 +3,14 @@
 namespace lip\utils;
 
 require_once('Pair.php');
-
+// ---------------------------------------------------------------------------------------
 function toString($value) {
-    if (is_callable($value)) {
-        $ref = new \ReflectionFunction($value);
-        $name = $ref->getName();
+    if ($value instanceof \ReflectionFunction) {
+        $name = $value->getName();
         return "<#function$name>";
+    } elseif ($value instanceof \ReflectionClass) {
+        $name = $value->getName();
+        return "<#class($name)>";
     } elseif (is_string($value)) {
         return json_encode($value);
     } elseif ($value instanceof \lip\Pair\Pair ||
@@ -25,5 +27,23 @@ function toString($value) {
         return $value;
     }
 }
+
+// ---------------------------------------------------------------------------------------
+// :: Function return global reference as value or as Reflection object
+// ---------------------------------------------------------------------------------------
+function getGlobalVar($name) {
+    if (class_exists($name)) {
+        return new \ReflectionClass($name);
+    } elseif (function_exists($name)) {
+        return new \ReflectionFunction($name);
+    } else {
+        foreach($GLOBALS as $var_name => $value) {
+            if ($name == $var_name) {
+                return $value;
+            }
+        }
+    }
+}
+
 
 ?>
