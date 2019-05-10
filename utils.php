@@ -16,7 +16,7 @@ function toString($value) {
     } elseif ($value instanceof \lip\Pair\Pair ||
                $value instanceof \lip\Symbol\Symbol ||
                $value instanceof \lip\LNumber\Lnumber ||
-               $value == \lip\Pair\nil()) {
+               \lip\Pair\isNil($value)) {
         return (string)$value;
     } elseif (is_array($value)) {
         return array_map('\lip\utils\toString', $value);

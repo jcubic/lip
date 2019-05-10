@@ -17,6 +17,72 @@ class Pair {
             $this->cdr = $cdr;
         }
     }
+    // -----------------------------------------------------------------------------------
+    function set($prop, $value) {
+        if (in_array($prop, array('car', 'cdr'))) {
+            $this->$prop = $value;
+            if ($value instanceof Pair) {
+                // TOOD: mark cycles
+            }
+        }
+    }
+    // -----------------------------------------------------------------------------------
+    function append($pair) {
+        if (is_array($pair)) {
+            return $this->append(Pair::fromArray($pair));
+        }
+        $p = $this;
+        if ($p->car == undefined) {
+            if ($par instanceof Pair) {
+                $this->car = $pair->car;
+                $this->cdr = $pair->cdr;
+            } else {
+                $this->car = $pair;
+            }
+        } else {
+            while (true) {
+                if ($p instanceof Pair && $p->cdr != nil()) {
+                    $p = $p->cdr;
+                } else {
+                    break;
+                }
+            }
+            if ($pair instanceof Pair) {
+                $p->cdr = $pair;
+            } else if ($pair != nil()) {
+                $p->cdr = new Pair($pair, nil());
+            }
+        }
+        return $this;
+    }
+    // -----------------------------------------------------------------------------------
+    function haveCycles($name = null) {
+        if ($name == null) {
+            return $this->haveCycles('car') || $this->haveCycles('cdr');
+        }
+        return isset($this->cycles) && isset($this->cycles->$name);
+    }
+    // -----------------------------------------------------------------------------------
+    function map($fn) {
+        if ($this->car != undefined) {
+            return new Pair($fn($this->car), isEmptyList($this->cdr) ? nil() : $this->cdr->map($fn));
+        }
+    }
+    // -----------------------------------------------------------------------------------
+    function reduce($fn, $init = '___UNDEFINED___') {
+        $node = $this;
+        $result = $init == undefined ? nil() : $init;
+        while (true) {
+            if ($node != nil()) {
+                $result = $fn($result, $node->car);
+                $node = $node->cdr;
+            } else {
+                break;
+            }
+        }
+        return $result;
+    }
+    // -----------------------------------------------------------------------------------
     function __toString() {
         $arr = array('(');
         if ($this->car != undefined) {
@@ -36,20 +102,36 @@ class Pair {
                     if (isset($this->cycles) && isset($this->cycles->cdr)) {
                         $name = $this->cycles->cdr;
                     }
-                    $cdr = preg_replace("/^\(|\)$/", "", $this->cdr->__toString());
+                    $rest = $this->cdr->__toString();
+                    $cdr = preg_replace("/^\(|\)$/", "", $rest);
                     $arr[] = ' ';
                     $arr[] = $cdr;
                 }
-            } else if ($this->cdr != nil()) {
+            } else if (!isNil($this->cdr)) {
                 if (is_string($this->cdr)) {
-                    $arr = array_merge(array(' . ', json_encode($this->cdr)));
+                    $arr = array_merge($arr, array(' . ', json_encode($this->cdr)));
                 } else {
-                    $arr = array_merge(array(' . ', toString($this->cdr)));
+                    $arr = array_merge($arr, array(' . ', toString($this->cdr)));
                 }
             }
         }
         $arr[] = ')';
         return implode("", $arr);
+    }
+    // -----------------------------------------------------------------------------------
+    static function fromPairs($array) {
+        return array_reduce($array, function($list, $pair) {
+            // TODO: \lip\Symbol\Symbol
+            list($key, $value) = $pair;
+            return new Pair(
+                new Pair($key, $value),
+                $list
+            );
+        }, nil());
+    }
+    // -----------------------------------------------------------------------------------
+    static function fromObject($obj) {
+        
     }
 }
 
@@ -69,6 +151,10 @@ $nil = new Nil();
 function nil() {
     global $nil;
     return $nil;
+}
+
+function isNil($value) {
+    return $value instanceof Nil && $value == nil();
 }
 
 function undefined() {}
