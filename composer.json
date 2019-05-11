@@ -27,8 +27,7 @@
         }
     },
     "require": {
-        "phpmath/biginteger": "^2.1",
-        "squizlabs/php_codesniffer": "^3.4"
+        "phpmath/biginteger": "^2.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^8",
