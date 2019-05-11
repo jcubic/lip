@@ -21,7 +21,7 @@ class Tokenizer {
     }
 
     // -------------------------------------------------------------------------
-    function tokens($str) {
+    static function tokens($str) {
         $tokens_re = self::makeTokenRe();
         $str = preg_replace("/\n\r|\r/", "\n", $str);
         $count = 0;
