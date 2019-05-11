@@ -130,8 +130,49 @@ class Pair {
         }, nil());
     }
     // -----------------------------------------------------------------------------------
+    static private function toPair($obj, $keys, $fn) {
+        return Pair::fromPairs(array_map(function($key) use ($obj, $fn) {
+            return array($key, $fn($key));
+        }, $keys));
+    }
+    // -----------------------------------------------------------------------------------
     static function fromObject($obj) {
-        
+        if (is_array($obj)) {
+            return Pair::toPair($obj, array_keys($obj), function($key) use ($obj) {
+                return $obj[$key];
+            });
+            return Pair::fromPairs(array_map(function($key) use ($obj) {
+                return array($key, $obj[$key]);
+            }, array_keys($obj)));
+        } else if (is_object($obj)) {
+            return Pair::toPair($obj, get_object_vars($obj), function($key) use ($obj) {
+                return $obj->$key;
+            });
+            return Pair::fromPairs(array_map(function($key) use ($obj) {
+                return array($key, $obj->$key);
+            }, get_object_vars($obj)));
+        }
+    }
+    static function fromArray($array) {
+        if ($array instanceof Pair) {
+            return $array;
+        }
+        if (is_array($array)) {
+            $len = count($array);
+            if ($len == 0) {
+                return emptyList();
+            }
+            if (is_array($array[0])) {
+                $car = Pair::fromArray($array[0]);
+            } else {
+                $car = $array[0];
+            }
+            if ($len == 1) {
+                return new Pair($car, nil());
+            } else {
+                return new Pair($car, Pair::fromArray(array_slice($array, 1)));
+            }
+        }
     }
 }
 

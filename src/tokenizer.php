@@ -6,23 +6,16 @@ $re_re = "%^\/((?:\\\/|[^/]|\[[^\]]*\/[^\]]*\])+)\/([gimy]*)$%";
 $int_re = "%^[-+]?[0-9]+([eE][-+]?[0-9]+)?$%";
 $float_re = "%^([-+]?((\.[0-9]+|[0-9]+\.[0-9]+)([eE][-+]?[0-9]+)?)|[0-9]+\.)$%";
 
-$pre_parse_re = '%("(?:\\[\S\s]|[^"])*"|\/(?! )[^\/\\]*(?:\\[\S\s][^\/\\]*)*\/[gimy]*(?=\s|\(|\)|$)|;.*)%';
-$string_re = '%"(?:\\[\S\s]|[^"])*"%';
-
-function escapeRegex($str) {
-    if (is_string($str)) {
-        $special = '%([-\\^$[\]()+{}?*.|])%';
-        return preg_replace($special, '\\$1', $str);
-    }
-}
+$pre_parse_re = "%(\"(?:\\\\[\\\\S\\\\s]|[^\"])*\"|\/(?! )[^\/\\\\]*(?:\\\\[\S\s][^\/\\\\]*)*\/[gimy]*(?=\s|\(|\)|$)|;.*)%";
+$string_re = '%"(?:\\[\\S\\s]|[^"])*"%';
 
 function makeTokenRe() {
     global $specials;
-    $tokens = implode("|", array_map('\lip\Tokenizer\escapeRegex', array_keys($specials)));
+    $tokens = implode("|", array_map('preg_quote', array_keys($specials)));
     return '%("(?:\\\\[\\S\\s]|[^"])*"|\\/(?! )[^\\/\\\\]*(?:\\\\[\\S\\s][^\\/\\\\]*)*\\/[gimy]*(?=\\s|\\(|\\)|$)|\\(|\\)|\'|"(?:\\\\[\\S\\s]|[^"])+|\\n|(?:\\\\[\\S\\s]|[^"])*"|;.*|(?:[-+]?(?:(?:\\.[0-9]+|[0-9]+\\.[0-9]+)(?:[eE][-+]?[0-9]+)?)|[0-9]+\\.)[0-9]|\\.{2,}|' . $tokens . '|[^(\\s)]+)%';
 }
 function lastItem($array, $n = 1) {
-    return $array[count($array) - n];
+    return $array[count($array) - $n];
 }
 
 function tokens($str) {
@@ -34,14 +27,15 @@ function tokens($str) {
     $tokens = array();
     $current_line = array();
     $col = 0;
-    $parts = preg_split($pre_parse_re, $str, -1, PREG_SPLIT_DELIM_CAPTURE);
-    foreach (array_filter($parts) as $string) {
+    $parts = preg_split($pre_parse_re, $str, -1,
+                        PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+    foreach ($parts as $string) {
         if (preg_match($pre_parse_re, $string)) {
             $col = 0;
             if (count($current_line) > 0) {
                 $lastToken = lastItem($current_line);
-                if (preg_match("/\n/", $lastToken)) {
-                    $lines = explode("\n", $lastToken);
+                if (preg_match("/\n/", $lastToken['token'])) {
+                    $lines = explode("\n", $lastToken['token']);
                     $last_line = array_pop($lines);
                     $col += strlen($last_line);
                 } else {
@@ -57,16 +51,15 @@ function tokens($str) {
             );
             $tokens[] = $token;
             $current_line[] = $token;
-            $count += srelen($string);
+            $count += strlen($string);
             $col += strlen($string);
-            if (preg_match_all("/\n/g", $string, $m, PREG_PATTERN_ORDER)) {
-                $line = count($m[0]);
-            } else {
-                $line = 0;
+            if (preg_match_all("/\n/", $string, $m, PREG_PATTERN_ORDER)) {
+                $line += count($m[0]);
             }
         } else {
-            $strings = preg_split($tokens_re, $str, -1, PREG_SPLIT_DELIM_CAPTURE);
-            foreach (array_filter($strings) as $string) {
+            $strings = preg_split($tokens_re, $string, -1,
+                                  PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+            foreach ($strings as $string) {
                 $token = array(
                     'col' => $col,
                     'line' => $line,
@@ -77,7 +70,7 @@ function tokens($str) {
                 $count += strlen($string);
                 $tokens[] = $token;
                 $current_line[] = $token;
-                if ($string === '\n') {
+                if ($string == "\n") {
                     ++$line;
                     $current_line = array();
                     $col = 0;

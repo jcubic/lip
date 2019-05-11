@@ -1,0 +1,12 @@
+language: php
+php:
+  - 7.0
+  - 7.2
+  - 7.3
+install:
+  - curl -s http://getcomposer.org/installer | php
+  - php composer.phar install --dev --no-interaction
+script:
+  - make test
+after_script:
+  - travis_retry make coveralls

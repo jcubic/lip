@@ -5,11 +5,20 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Jakub Jankiewicz",
+            "name": "Jakub T. Jankiewicz",
             "email": "jcubic@onet.pl"
         }
     ],
+    "autoload": {
+        "psr-4": {
+            "lip\\": ""
+        }
+    },
     "require": {
         "phpmath/biginteger": "^2.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8",
+        "php-coveralls/php-coveralls": "^2.1"
     }
 }
