@@ -15,13 +15,13 @@
         }
     },
     "autoload": {
-        "files": ["src/utils.php", "src/tokenizer.php"],
+        "files": ["src/utils.php"],
         "psr-4": {
             "jcubic\\lip\\": "src/"
         }
     },
     "autoload-dev": {
-        "files": ["src/utils.php", "src/tokenizer.php"],
+        "files": ["src/utils.php"],
         "psr-4": {
             "jcubic\\lips\\": "tests/"
         }
