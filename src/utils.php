@@ -1,8 +1,11 @@
 <?php
 
-namespace lip\utils;
+namespace jcubic\lip;
 
-require_once('Pair.php');
+use jcubic\lip\Pair;
+use jcubic\lip\Symbol;
+use jcubic\lip\LNumber;
+
 // ---------------------------------------------------------------------------------------
 function toString($value) {
     if ($value instanceof \ReflectionFunction) {
@@ -13,10 +16,10 @@ function toString($value) {
         return "<#class($name)>";
     } elseif (is_string($value)) {
         return json_encode($value);
-    } elseif ($value instanceof \lip\Pair\Pair ||
-               $value instanceof \lip\Symbol\Symbol ||
-               $value instanceof \lip\LNumber\Lnumber ||
-               \lip\Pair\isNil($value)) {
+    } elseif ($value instanceof Pair ||
+               $value instanceof Symbol ||
+               $value instanceof Lnumber ||
+               Pair::isNil($value)) {
         return (string)$value;
     } elseif (is_array($value)) {
         return array_map('\lip\utils\toString', $value);
@@ -46,4 +49,6 @@ function getGlobalVar($name) {
 }
 
 
-?>
+function lastItem($array, $n = 1) {
+    return $array[count($array) - $n];
+}

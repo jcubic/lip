@@ -1,13 +1,16 @@
 <?php
+/*
+namespace jcubic\lip;
 
-namespace lip;
+//require_once('utils.php');
+//require_once('tokenizer.php');
+//require_once('Pair.php');
+//require_once('Symbol.php');
+//require_once('Symbol.php');
 
-require_once('utils.php');
-require_once('tokenizer.php');
-require_once('Pair.php');
 
 function tokenize($string, $extra = false) {
-    return \lip\Tokenizer\tokenize($string, $extra);
+    return \jcubic\lip\Tokenizer\tokenize($string, $extra);
 }
-
+*/
 ?>

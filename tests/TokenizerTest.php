@@ -1,13 +1,15 @@
 <?php
 
+namespace jcubic\lip\TokenizerTest;
+
 use PHPUnit\Framework\TestCase;
 
-use function lip\tokenize;
+use jcubic\lip\Tokenizer;
 
 class TokenizerTest extends TestCase {
     public function testTokenizerStrigns() {
         $input = '((("xxx" /()\\/xxx/g 10.1 `(foo ,(list)    ,@))))';
-        $output = tokenize($input);
+        $output = Tokenizer::tokenize($input);
         $this->assertEquals(
             array("(", "(", "(", '"xxx"', "/()\\/xxx/g", "10.1", "`", "(", "foo", ",", "(",
                   "list", ")", ",@", ")", ")", ")", ")"),
@@ -17,12 +19,12 @@ class TokenizerTest extends TestCase {
     public function testSemicolons() {
         $this->assertEquals(
             array('(', '";()"', '/;;;/g', 'baz', ')'),
-            tokenize('(";()" /;;;/g baz); (baz quux)'),
+            Tokenizer::tokenize('(";()" /;;;/g baz); (baz quux)'),
             'should ignore semicolons'
         );
         $this->assertEquals(
             array('(', 'foo', 'bar', 'baz', ')'),
-            tokenize('(foo bar baz); (baz quux)'),
+            Tokenizer::tokenize('(foo bar baz); (baz quux)'),
             'should remove comments'
         );
     }
@@ -119,7 +121,7 @@ class TokenizerTest extends TestCase {
         );
         $this->assertEquals(
             $output,
-            tokenize($input, true)
+            Tokenizer::tokenize($input, true)
         );
     }
 }

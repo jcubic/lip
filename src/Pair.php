@@ -1,18 +1,17 @@
 <?php
 
-namespace lip\Pair;
+namespace jcubic\lip;
 
-require_once('utils.php');
-
-use function \lip\utils\toString;
+//use function jcubic\lip\toString;
 
 define('undefined', '___UNDEFINED___');
 
 class Pair {
+    static $nil = null;
     function __construct($car = '___UNDEFINED___', $cdr = '___UNDEFINED___') {
         $this->car = $car;
         if ($cdr == '___UNDEFINED___') {
-            $this->cdr = nil();
+            $this->cdr = self::$nil;
         } else {
             $this->cdr = $cdr;
         }
@@ -41,7 +40,7 @@ class Pair {
             }
         } else {
             while (true) {
-                if ($p instanceof Pair && $p->cdr != nil()) {
+                if ($p instanceof Pair && $p->cdr != self::$nil) {
                     $p = $p->cdr;
                 } else {
                     break;
@@ -49,8 +48,8 @@ class Pair {
             }
             if ($pair instanceof Pair) {
                 $p->cdr = $pair;
-            } else if ($pair != nil()) {
-                $p->cdr = new Pair($pair, nil());
+            } else if ($pair != self::$nil) {
+                $p->cdr = new Pair($pair, self::$nil);
             }
         }
         return $this;
@@ -65,15 +64,18 @@ class Pair {
     // -----------------------------------------------------------------------------------
     function map($fn) {
         if ($this->car != undefined) {
-            return new Pair($fn($this->car), isEmptyList($this->cdr) ? nil() : $this->cdr->map($fn));
+            return new Pair(
+                $fn($this->car),
+                self::isEmptyList($this->cdr) ? self::$nil : $this->cdr->map($fn)
+            );
         }
     }
     // -----------------------------------------------------------------------------------
     function reduce($fn, $init = '___UNDEFINED___') {
         $node = $this;
-        $result = $init == undefined ? nil() : $init;
+        $result = $init == undefined ? self::$nil : $init;
         while (true) {
-            if ($node != nil()) {
+            if ($node != self::$nil) {
                 $result = $fn($result, $node->car);
                 $node = $node->cdr;
             } else {
@@ -107,7 +109,7 @@ class Pair {
                     $arr[] = ' ';
                     $arr[] = $cdr;
                 }
-            } else if (!isNil($this->cdr)) {
+            } else if (!self::isNil($this->cdr)) {
                 if (is_string($this->cdr)) {
                     $arr = array_merge($arr, array(' . ', json_encode($this->cdr)));
                 } else {
@@ -119,6 +121,48 @@ class Pair {
         return implode("", $arr);
     }
     // -----------------------------------------------------------------------------------
+    function toArray() {
+        if (self::isEmptyList($this)) {
+            return array();
+        }
+        $result = array();
+        if ($this->car instanceof Pair) {
+            $result[] = $this->car->toArray();
+        } else {
+            $result[] = $this->car;
+        }
+        if ($this->cdr instanceof Pair) {
+            $result = array_merge($result, $this->cdr->toArray());
+        }
+        return $result;
+    }
+    // -----------------------------------------------------------------------------------
+    function toObject() {
+        $node = $this;
+        $result = array();
+        while (true) {
+            if ($node instanceof Pair && $node->car instanceof Pair) {
+                $pair = $node->car;
+                $name = $pair->car;
+                if ($name instanceof Symbol) {
+                    $name = $name->name;
+                }
+                $cdr = $pair->cdr;
+                if ($cdr instanceof Pair) {
+                    $cdr = $cdr->toObject();
+                }
+                //else if ($cdr instanceof LNumber) {
+                //  $cdr = $cdr->valueOf();
+                //}
+                $result[$name] = $cdr;
+                $node = $node->cdr;
+            } else {
+                break;
+            }
+        }
+        return $result;
+    }
+    // -----------------------------------------------------------------------------------
     static function fromPairs($array) {
         return array_reduce($array, function($list, $pair) {
             // TODO: \lip\Symbol\Symbol
@@ -127,7 +171,7 @@ class Pair {
                 new Pair($key, $value),
                 $list
             );
-        }, nil());
+        }, self::$nil);
     }
     // -----------------------------------------------------------------------------------
     static private function toPair($obj, $keys, $fn) {
@@ -153,6 +197,7 @@ class Pair {
             }, get_object_vars($obj)));
         }
     }
+    // -----------------------------------------------------------------------------------
     static function fromArray($array) {
         if ($array instanceof Pair) {
             return $array;
@@ -168,18 +213,29 @@ class Pair {
                 $car = $array[0];
             }
             if ($len == 1) {
-                return new Pair($car, nil());
+                return new Pair($car, self::$nil);
             } else {
                 return new Pair($car, Pair::fromArray(array_slice($array, 1)));
             }
         }
     }
+    // -------------------------------------------------------------------------
+    static function isEmptyList($x) {
+        return $x instanceof Pair && $x->car == undefined && $x->cdr == self::$nil;
+    }
+    // -------------------------------------------------------------------------
+    static function init() {
+        self::$nil = new Nil();
+    }
+    // -------------------------------------------------------------------------
+    static function isNil($value) {
+        return $value instanceof Nil && $value == self::$nil;
+    }
+    // -------------------------------------------------------------------------
+    static function emptyList() {
+        return new Pair();
+    }
 }
-
-function isEmptyList($x) {
-    return $x instanceof Pair && $x->car == undefined && $x->cdr == nil();
-}
-
 
 class Nil {
     function __toString() {
@@ -187,21 +243,7 @@ class Nil {
     }
 }
 
-$nil = new Nil();
+Pair::init();
 
-function nil() {
-    global $nil;
-    return $nil;
-}
-
-function isNil($value) {
-    return $value instanceof Nil && $value == nil();
-}
-
-function undefined() {}
-
-function emptyList() {
-    return new Pair();
-}
 
 ?>

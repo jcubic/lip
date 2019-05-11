@@ -1,5 +1,7 @@
 <?php
 
+namespace jcubic\lip;
+
 class Gensym {
     private static $count = 0;
     private $name;
@@ -21,9 +23,5 @@ class Symbol {
         return (string)$this->name;
     }
 }
-
-$x = new Symbol(new Gensym());
-$y = new Symbol(new Gensym());
-echo $x . "\n" . $y . "\n";
 
 ?>
