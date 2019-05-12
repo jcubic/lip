@@ -8,6 +8,8 @@ define('undefined', '___UNDEFINED___');
 
 class Pair {
     static $nil = null;
+    private $_car;
+    private $_cdr;
     function __construct($car = '___UNDEFINED___', $cdr = '___UNDEFINED___') {
         $this->car = $car;
         if ($cdr == '___UNDEFINED___') {
@@ -17,9 +19,19 @@ class Pair {
         }
     }
     // -----------------------------------------------------------------------------------
-    function set($prop, $value) {
+    function __get($prop) {
         if (in_array($prop, array('car', 'cdr'))) {
-            $this->$prop = $value;
+            $name = '_' . $prop;
+            return $this->$name;
+        } else {
+            throw new \Exception("$prop field don't exists");
+        }
+    }
+    // -----------------------------------------------------------------------------------
+    function __set($prop, $value) {
+        if (in_array($prop, array('car', 'cdr'))) {
+            $name = '_' . $prop;
+            $this->$name = $value;
             if ($value instanceof Pair) {
                 // TOOD: mark cycles
             }
@@ -48,7 +60,7 @@ class Pair {
             }
             if ($pair instanceof Pair) {
                 $p->cdr = $pair;
-            } else if ($pair != self::$nil) {
+            } else if (!self::isNil($pair)) {
                 $p->cdr = new Pair($pair, self::$nil);
             }
         }
@@ -183,18 +195,15 @@ class Pair {
     static function fromObject($obj) {
         if (is_array($obj)) {
             return Pair::toPair($obj, array_keys($obj), function($key) use ($obj) {
+                
                 return $obj[$key];
             });
-            return Pair::fromPairs(array_map(function($key) use ($obj) {
-                return array($key, $obj[$key]);
-            }, array_keys($obj)));
         } else if (is_object($obj)) {
-            return Pair::toPair($obj, get_object_vars($obj), function($key) use ($obj) {
+            $keys = array_keys(get_object_vars($obj));
+            return Pair::toPair($obj, $keys, function($key) use ($obj) {
+                
                 return $obj->$key;
             });
-            return Pair::fromPairs(array_map(function($key) use ($obj) {
-                return array($key, $obj->$key);
-            }, get_object_vars($obj)));
         }
     }
     // -----------------------------------------------------------------------------------
@@ -205,7 +214,7 @@ class Pair {
         if (is_array($array)) {
             $len = count($array);
             if ($len == 0) {
-                return emptyList();
+                return self::emptyList();
             }
             if (is_array($array[0])) {
                 $car = Pair::fromArray($array[0]);

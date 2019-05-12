@@ -32,6 +32,21 @@ class LNumber {
                 $this->value = new BigInteger($value);
             }
         }
+        foreach (array('ceil', 'floor', 'round') as $fn) {
+            $this->$fn = function() use ($fn) {
+                if ($this->float || is_float($this->value)) {
+                    return new LNumber((int)$fn($this->value));
+                }
+                return $this;
+            };
+        }
+    }
+    // -----------------------------------------------------------------------------------
+    public function __call($name, $arguments) {
+        if (isset($this->{$name})) {
+            return call_user_func($this->{$name}, $arguments);
+        }
+        throw new \Exception("$name method not found");
     }
     // -----------------------------------------------------------------------------------
     function __toString() {
@@ -47,6 +62,10 @@ class LNumber {
             return LNumber::isNumber($n->value);
         }
         return is_numeric($n) || is_float($n) || is_int($n) || $n instanceof BigInteger;
+    }
+    // -----------------------------------------------------------------------------------
+    function isBigNumber() {
+        return $this->value instanceof BigInteger;
     }
 }
 

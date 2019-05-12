@@ -22,6 +22,21 @@ class LNumberTest extends TestCase {
     public function testConstructor() {
         $x = new LNumber(new LNumber(100));
         $this->assertEquals('100', (string)$x);
+        $this->assertTrue(isset($x->ceil));
+    }
+    public function testDynamicFunctions() {
+        $x = new LNumber(100.1);
+        $y = $x->ceil();
+        $this->assertEquals('101', (string)$y);
+        $this->assertTrue($y->isBigNumber() && !$x->isBigNumber());
+        $x = new LNumber(100);
+        $this->assertEquals($x->ceil(), $x);
+        try {
+            $x->nonExisted();
+            $this->assertTrue(false);
+        } catch(\Exception $e) {
+            $this->assertTrue(true);
+        }
     }
     // -------------------------------------------------------------------------
     public function testBigInt() {
