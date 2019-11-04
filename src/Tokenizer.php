@@ -107,5 +107,3 @@ class Tokenizer {
 }
 
 Tokenizer::init();
-
-?>

@@ -48,7 +48,7 @@ function getGlobalVar($name) {
     }
 }
 
-
+// ---------------------------------------------------------------------------------------
 function lastItem($array, $n = 1) {
     return $array[count($array) - $n];
 }
